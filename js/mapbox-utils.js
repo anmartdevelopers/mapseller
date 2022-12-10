@@ -145,8 +145,7 @@ const STYLES = {
       ]
     },
   };
-
-
+  
   function loadImage(src) {
     return new Promise((resolve, reject) => {
       const image = new Image();

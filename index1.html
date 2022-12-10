@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html>
 
+
+<!-- Mirrored from poster.myholidaymap.com/ by HTTrack Website Copier/3.x [XR&CO'2014], Wed, 07 Dec 2022 21:04:53 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
 <head>
     <meta charset='utf-8' />
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no,width=device-width,shrink-to-fit=no' />
-    <title>Pics Map</title>
+    <title>My Holiday Map</title>
     <link rel='stylesheet' href='https://jqueryui.com/jquery-wp-content/themes/jqueryui.com/style.css'>
     <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/lity/2.3.0/lity.css' />
     <!-- Web Fonts -->
@@ -18,7 +21,7 @@
     <!-- Cross-Browser CSS -->
     <link rel='stylesheet' href='css/normalize.css'>
     <!-- Custom CSS file -->
-    <link href='css/style1.css' rel='stylesheet'>
+    <link href='css/style.css' rel='stylesheet'>
     <link href='css/loader.css' rel='stylesheet'>
     <!-- Font Awesome CSS -->
     <link rel='stylesheet' href='fonts/font-awesome/css/font-awesome.min.css'>
@@ -48,23 +51,26 @@
         <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <a class="navbar-brand" href="https://mapseller.com/">
-            <img src="/images/logo.JPG">
+        <a class="navbar-brand" href="https://myholidaymap.com/">
+            <img src="https://myholidaymap.com/wp-content/uploads/2018/04/myholidaymap.png">
         </a>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav ml-auto navbar-right">
                 <li class="nav-item active">
-                    <a class="nav-link" href="/about-us/">About
+                    <a class="nav-link" href="https://www.myholidaymap.com/about-us/">About
                         <span class="sr-only">(current)</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/contact/">Contact</a>
+                    <a class="nav-link" href="https://www.myholidaymap.com/contact/">Contact</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/faq/">FAQ</a>
+                    <a class="nav-link" href="https://www.myholidaymap.com/faq/">FAQ</a>
                 </li>
             </ul>
+            <!--form class="form-inline my-2 my-lg-0">
+                <button class="btn btn-primary my-2 my-sm-0 create-map-btn">Create Your Map</button>
+            </form-->
         </div>
     </nav>
     <div class="container-fluid">
@@ -76,8 +82,7 @@
                     <div class="tab-pane fade in show active" id="your-trip" role="tabpanel">
 
                         <form id="gpx-section" enctype="multipart/form-data">
-                          <!-- Adding your Route setion -->
-                            <h5>1. Add your Route</h5>
+                            <h5>1. Add your spots</h5>
                             <div class="custom-button">
                                 <input type="button" onclick="document.getElementById('upload').click()" class="btn btn-outline-success btn-block print-order" value="IMPORT ROUTE (*.GPX)">
                                 <i class="fa fa-question-circle help" onclick="openHelp()"></i>
@@ -85,8 +90,11 @@
                             </div>
                         </form>
                         <h5 style="text-align: center; color:#a94442 !important; "> OR </h5>
-                        <!-- Search Section for the city -->
                         <span class="choose-destination">Please enter the city name in search and press enter</span>
+                        <!-- <input type="text"
+                        style="width:100%;background-color:#273C50;color:#FFFFFF;font-family: -apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue';"
+                        class="form-control" id="address"
+                        /> -->
                         <div>
                             <div id='geocoder' class='geocoder column'></div>
                             <span class=''>
@@ -94,7 +102,10 @@
                                 <img id="travel_car"></img>
                             </span>
                         </div>
-                        <!-- Destination poup styling -->
+                        <!-- div class="custom-button">
+                            <input id='manualRouteBtn' type="button" onclick="manualRouteClick()" class="btn btn-outline-success btn-block print-order" value="MANUAL ROUTE">
+                            <i class="fa fa-question-circle help" onclick="openManualRouteHelp()"></i>
+                        </div -->
                         <ul style="width:100%;margin-top:25px;" id="locationName" class="destinations dyn-height">
                             </li>
                         </ul>
@@ -102,7 +113,6 @@
                             <input type="checkbox" id="looped_map"> <label class='choose-destination' for="looped_map">Loop
                                 Back</label>
                         </div>
-                        <!-- Styler Section for the styles -->
                         <h5>2. Choose your style</h5>
                         <ul class="styler">
                             <li class="blue active">
@@ -143,37 +153,45 @@
                             </li>
                         </ul>
                         <span>
-                          <!-- Trip Stats Addition -->
                         <h5>3. Add Trip Stats</h5>
+                            <!--input type="button" id="btnToggleIcons" 
+                            class="btn btn-outline-success btn-block print-order" 
+                            value="Toggle Stats Overlay" style="margin-bottom:2%; margin-top:2%;"-->
                         </span>
                         <div class="flex-container">
                             <img id="icon_date_txt_show" class="enable-stats">
-                            <input id="icon_date_txt" type="text" placeholder="3:49:12" maxlength="7" style="background-color:#273C50;color:#FFFFFF; width: 90% !important;font-family: -apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue';float: right;" class="form-control" />
+                            <input id="icon_date_txt" type="text" placeholder="3:49:12" maxlength="7" style="background-color:#273C50;color:#FFFFFF;
+                                width: 90% !important;font-family: -apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue';
+                            float: right;" class="form-control" />
+
 
                             <img id="icon_tri_txt_show" class="enable-stats">
-                            <input id="icon_tri_txt" type="text" placeholder="32.6 km" maxlength="7" style="width: 90% !important;width:295px;background-color:#273C50;color:#FFFFFF;font-family: -apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue';float: right;" class="form-control" />
+                            <input id="icon_tri_txt" type="text" placeholder="32.6 km" maxlength="7" style="width: 90% !important;
+                            width:295px;background-color:#273C50;color:#FFFFFF;
+                            font-family: -apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue';
+                                                        float: right;" class="form-control" />
 
                             <img id="icon_dist_txt_show" class="enable-stats">
-                            <input id="icon_dist_txt" type="text" placeholder="3994m" maxlength="7" style="width: 90% !important;width:295px;background-color:#273C50;color:#FFFFFF;font-family: -apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue';float: right;" class="form-control" />
+
+                            <input id="icon_dist_txt" type="text" placeholder="3994m" maxlength="7" style="width: 90% !important;
+                            width:295px;background-color:#273C50;color:#FFFFFF;font-family: -apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue';
+                                                        float: right;" class="form-control" />
 
                         </div>
                         <br>
-                        <!-- Adding Trip Details -->
                         <h5>4. Add Trip Details</h5>
                         <div class="detail-checkboxes">
-                            <input id="tripName_txt" type="text" placeholder="KENYA" maxlength="30" style="width:295px;background-color:#273C50;color:#FFFFFF;font-family: -apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue';" class="form-control" />
-                            <input id="tripDetail_txt" type="text" placeholder="May - July 2022" maxlength="30" style="width:295px;background-color:#273C50;color:#FFFFFF;font-family: -apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue';" class="form-control"
+                            <input id="tripName_txt" type="text" placeholder="AUSTRALIA" maxlength="30" style="width:295px;background-color:#273C50;color:#FFFFFF;font-family: -apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue';" class="form-control" />
+                            <input id="tripDetail_txt" type="text" placeholder="May - July 2018" maxlength="30" style="width:295px;background-color:#273C50;color:#FFFFFF;font-family: -apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue';" class="form-control"
                             />
                         </div>
                         <br>
-                        <!--Selecting Orientation -->
                         <h5>5. Select orientation</h5>
                         <ul class="portraIte-landscape">
                             <li class="portrait active">Portrait</li>
                             <li class="landscape">Landscape</li>
                         </ul>
                         <ul class=""></ul>
-                        <!-- High Resolution Section Pre Info -->
                         <h5>6. High Resolution Image</h5>
                         <ul class="sizes">
                             <li class="active">
@@ -185,10 +203,11 @@
                                         <div class="tool-tip">
                                             <i class="fa fa-info-circle fa-4x" style="font-size: 20px;"></i>
                                             <p class="tool-tip__info">
-                                            <span class="info">We will send you a high resolution png so that you can print the poster at your local print shop.</span>
-                                            </p>
-                                        </div>
-                                    </span>
+                                                <span class="info">We will send you a high resolution png so that you
+                                                    can print the poster at your local print shop.</span>
+                                    </p>
+                                </div>
+                                </span>
                                 <span class="big price">
                                         € 14.95
                                     </span>
@@ -198,7 +217,7 @@
 
                     </ul>
                     <ul class="new_row"></ul>
-                    <form enctype="multipart/form-data" method="POST" action="https://poster.MapSeller.com/img.php" name="fileinfo">
+                    <form enctype="multipart/form-data" method="POST" action="https://poster.myholidaymap.com/img.php" name="fileinfo">
                         <span id="menu">
                                 <textarea style="display:none" type="text" id="img" name="img"></textarea>
                                 <textarea style="display:none" type="text" id="img2" name="img2"></textarea>
@@ -219,8 +238,8 @@
                 <div class="map-responsive" style="display: none">
                     <div id='map'>
                         <div id='state-legend' class='gradient blue-gradient'>
-                            <span id="tcrTripName">KENYA</span>
-                            <p id="tcrTripDetails"> JAN - DEC 2022</p>
+                            <span id="tcrTripName">AUSTRALIA</span>
+                            <p id="tcrTripDetails"> May - July 2020</p>
                             <p id="distancelbl" style="display:none"> - km </p>
                         </div>
                     </div>
@@ -232,8 +251,11 @@
 
     <script src="js/mapbox-utils.js" type='text/javascript'></script>
     <script src="js/mapbox-map.js" type='text/javascript'></script>
-    <!-- <script src='js/togeojson.js'></script> -->
+    <script src='js/togeojson.js'></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/notie/4.3.1/notie.min.js" integrity="sha512-NHRCwRf2LnVSlLDejCA9oS3fG3/FLSQIPCjAWl3M7tVi5wszwr6FxkjotWnQDXLE+aLKcxRrzFDNEgXj9nvkPw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 </body>
+
+
+<!-- Mirrored from poster.myholidaymap.com/ by HTTrack Website Copier/3.x [XR&CO'2014], Wed, 07 Dec 2022 21:05:22 GMT -->
 </html>

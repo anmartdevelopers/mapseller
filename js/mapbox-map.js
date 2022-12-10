@@ -1,46 +1,45 @@
+//  Created by Nauman Qazi (itsnomihere@gmail.com)
+//  Copyright (c) 2016 Nauman Qazi. All rights reserved.
 var map;
-var zoomLvl =10;
+var zoomLvl = 10;
 var lat = '-37.81361100000001';
 var lng = '144.96305600000005';
 var MAX_DESTINATION_COUNT = 40;
-var selectOrientation = 'potrait';
-var selectedSize = 'PDF';
+var selectedOrientation = 'portrait';
+var selectedSize = "PDF";
 var _DEBUG_ = (location.hostname === "localhost" || location.hostname === "127.0.0.1");
 var oldBounds;
-var Cities= [];
+var cities = [];
 var DOWNLOADSVG = false;
 var isOkToLeaveSite = false;
 var manualRouteClicked = false;
 var pointCount = 1;
-var doNotFitToBound = false;
+var donNotFitToBound = false;
 var filtered_cities = () => {
-    return Cities.filter(c => !c.archieved);
+    return cities.filter(c => !c.archived);
 }
-var isFlighPath = false;
-// mappox api access token
+var isFlightPath = false;
 mapboxgl.accessToken = 'pk.eyJ1IjoidGhpanNzb25kYWciLCJhIjoiY2phOHI2MXNuMDh3dzMzanVhZXlzanU4byJ9.L3vNl1ehNadAt1JWPJqgiA';
 
-// setting the style for the overlay functions
-const OVERLAY_DEFAULTS ={
-    topRight:{
-        fontFamily:'HKGrotesk-Medium',
-        lineHeight:33,
-        fontSize:18,
-        letterSpacing:3.75,
-        iconSpacing:5,
-        iconHeight:24,
-        Weight:500,
-        color:undefined,
+const OVERLAY_DEFAULTS = {
+    topRight: {
+        fontFamily: 'HKGrotesk-Medium',
+        lineHeight: 33,
+        fontSize: 18,
+        letterSpacing: 3.75,
+        iconSpacing: 5,
+        iconHeight: 24,
+        weight: 500,
+        color: undefined,
     }
 }
-
-// dates function
 const currYear = new Date().getFullYear();
 const app = {
-    overlay:{
-        title:{text:'KENYA', fontFamily:'HKGrotesk-Medium'},
-        Subtitle:{text:'May - July'+ currYear, fontFamily:'HKGrotesk-Medium'},
-        time:{vissible:true,text:'3:20:19',icon:'images/icons/time@1.5x.svg', ...OVERLAY_DEFAULTS.topRight},
+    overlay: {
+        title: { text: 'KENYA', fontFamily: 'HKGrotesk-Medium' },
+        subtitle: { text: 'JAN - DEC ' + currYear, fontFamily: 'HKGrotesk-Medium' },
+
+        time: { visible: true, text: '3:49:12', icon: 'images/icons/time@1.5x.svg', ...OVERLAY_DEFAULTS.topRight },
         meters: { visible: false, text: '3994m', icon: 'images/icons/meters@1.5x.svg', ...OVERLAY_DEFAULTS.topRight },
         kms: { visible: true, text: '32.6 km', icon: 'images/icons/kms@1.5x.svg', ...OVERLAY_DEFAULTS.topRight },
 
@@ -48,23 +47,25 @@ const app = {
         paddingTop: 18,
         paddingRight: 18,
     },
-    mapContainer:{
-        width:468,
-        height:662,
-    },
-    thumbnail: {
-        width:448,
-        height:642,
-    },
-    style:{
-        penwidth:2,
-        loopBack:false,
-        ...StyleSheet.blue,
-    },
-    
-    styles:STYLES,
 
-    POS:[
+    mapContainer: {
+        width: 468,
+        height: 662,
+    },
+
+    thumbnail: {
+        width: 448,
+        height: 642,
+    },
+
+    style: {
+        penWidth: 2,
+        loopBack: false,
+        ...STYLES.blue,
+    },
+    styles: STYLES,
+
+    pos: [
         { position: 'right', offset: [-1.3, 0] },
         { position: 'bottom', offset: [0, 1.3] },
         { position: 'left', offset: [1.3, 0] },
@@ -76,37 +77,42 @@ const app = {
     gpx: {}
 }
 
-const loadFont = cached((url) => opentype.load(url),(url) => url, app.fonts)
 
-async function selectFontForText(fonts,text,fallback=null) {
-    //console.log(getCharacterEncodes(text));
-    for(const url of foonts){
+const loadFont = cached((url) => opentype.load(url), (url) => url, app.fonts)
+
+async function selectFontForText(fonts, text, fallback = null) {
+    // console.log(getCharacterEncodes(text))
+
+    for (const url of fonts) {
         const font = await loadFont(url)
-        const gs = font.stringToGlyphs(txt)
+        const gs = font.stringToGlyphs(text)
         if (gs.every((c) => c.index)) {
             return font
         }
     }
+
     return fallback && await loadFont(fallback)
 }
 
-async function drawSvg(width,height,isLandscapee,title,subtitle,time,meters,kms,color,fonts) {
-    // Remove svg if it already exists
+async function drawSvg(width, height, isLandscape, title, subtitle, time, meters, kms, color, fonts) {
+    //remove svg if it already exists
     if (SVG('#mapCover')) {
         SVG('#mapCover').remove();
     }
-    // Create new svg
-    var draw =SVG().attr('id','mapCover').attr('preserveAspectRatio','none').attr('style','z-index:1; position:absolute;').attr('pointer-events','none').addTo('#map-container');
-    draw.viewbox(0,0,width,height).size(width,height);
 
-    var linear = draw.gradient('linear', function (add) {
-        add.stop({offset:0, color, opacity:1})
-        add.stop({offset:1, color, opacity:0})
+    //create new svg
+    var draw = SVG().attr('id', 'mapCover').attr('preserveAspectRatio', 'none').attr('style', 'z-index:1; position:absolute;').attr('pointer-events', 'none').addTo('#map-container');
+    draw.viewbox(0, 0, width, height)
+        .size(width, height);
+
+    var linear = draw.gradient('linear', function(add) {
+        add.stop({ offset: 0, color: color, opacity: 1 })
+        add.stop({ offset: 1, color: color, opacity: 0 })
     });
-    draw.rect(287,width).move(0.0,height).transform({rotate:-90,origin:'top left'}).fill(linear);
+    draw.rect(287, width).move(0.0, height).transform({ rotate: -90, origin: 'top left' }).fill(linear);
 
-    //weighted geometric mean size of svg
-    const meanSize =0.871 * (height * width) ** 0.5
+    // weighted geometric mean size of svg
+    const meanSize = 0.871 * (height * width) ** 0.5
 
     const smallFontSize = Math.ceil(meanSize / 28)
         // const middle = font.descender / font.unitsPerEm * fontSize;
@@ -255,14 +261,13 @@ async function updateOverlay(options) {
         gradient.stop,
         fonts
     );
-
 }
 
 /**
  * detect IE
  * returns version of IE or false, if browser is not Internet Explorer
  */
- function detectIE() {
+function detectIE() {
     var ua = window.navigator.userAgent;
 
     var msie = ua.indexOf('MSIE ');
@@ -288,7 +293,6 @@ async function updateOverlay(options) {
     return false;
 }
 
-// Location Detection of the city
 function deleteLocation(city_name) {
     for (var i = filtered_cities().length - 1; i >= 0; --i) {
         if (filtered_cities()[i].city_name == city_name) {
@@ -299,7 +303,7 @@ function deleteLocation(city_name) {
     }
 }
 
-function changeOrder(direction,city_name) {
+function changeOrder(direction, city_name) {
     for (var i = cities.length - 1; i >= 0; --i) {
         if (cities[i].city_name == city_name) {
             const j = i + direction
@@ -347,6 +351,7 @@ function changePosition(city_name) {
         }
     }
 }
+
 
 function changeName(city_name) {
     var layer_id = "points_" + city_name;
@@ -398,7 +403,6 @@ async function handleGPXFileSelect(evt) {
     completeRedraw();
 }
 
-// Destination poup styling
 async function completeRedraw(options) {
     const { fitBounds = true } = options || {}
     const filteredCities = filtered_cities()
@@ -415,7 +419,6 @@ async function completeRedraw(options) {
                 </li>
                 `;
     }
-    // Styling the rout destination under section one row of adding destinations
     document.getElementById('locationName').innerHTML += filteredCities
         .map((currentCity, i) => {
             const cityName = currentCity.city_name
@@ -494,6 +497,7 @@ async function completeRedraw(options) {
         if (isSourcePoint) {
             bounds.extend(source.data.geometry.coordinates)
         }
+
         if (!existing || !isSourcePoint) {
             if (existing) {
                 // might not remove the source, but won't throw,
@@ -511,6 +515,7 @@ async function completeRedraw(options) {
     if (!donNotFitToBound && fitBounds && (app.gpx.data || filteredCities.length > 1) && !bounds.isEmpty()) {
         map.fitBounds(bounds, { padding: 100 })
     }
+
 }
 
 function mapScreenshot(map) {
@@ -592,7 +597,7 @@ async function createPrintMap(zoom, center, bearing, pitch, noRedirect) {
         image: "",
         textResizeFactor: 0.3,
         fontawesome: "fa fa-cog fa-spin",
-        text: "Hold on Buddy As we process you Map ⌚️."
+        text: "We are working on your banner Hold on buddy ⌚️."
     });
 
     try {
@@ -669,7 +674,7 @@ async function createPrintMap(zoom, center, bearing, pitch, noRedirect) {
         body.append('layers', JSON.stringify(annotations))
         body.append('overlay', "data:null")
         body.append('thumbnail', await thumbnailImage)
-        const response = await fetch('https://poster.myholidaymap.com/map.php', { method: 'POST', body })
+        const response = await fetch('https://poster.mapseller.com/map.php', { method: 'POST', body })
         if (!response.ok) {
             throw new Error(`response failed ${response.statusText}`)
         }
@@ -682,7 +687,7 @@ async function createPrintMap(zoom, center, bearing, pitch, noRedirect) {
         const sizeToProductId = { S: 90, M: 91, L: 92, XL: 93, PDF: 715 }
         const productId = sizeToProductId[selectedSize] || 715
 
-        const url = new URL('http://myholidaymap.com/checkout/')
+        const url = new URL('http://mapseller.com/checkout/')
         const params = url.searchParams
         params.set('add-to-cart', productId)
         params.set('style', style)
@@ -719,6 +724,7 @@ function printClick_resize() {
         console.log(map.getCanvas().toDataURL())
     }, 5000);
 }
+
 function downloadImage(blob) {
     var link = document.createElement('a');
     link.download = 'filename.png';
@@ -744,6 +750,7 @@ function printClick(download) {
 
 }
 
+
 function openHelp(){
     window.open('https://www.myholidaymap.com/import-your-travel-route-gpx-automatically/', '_blank');
   }
@@ -752,7 +759,7 @@ function openHelp(){
   
   }
 
-  function manualRouteClick(){
+function manualRouteClick(){
     var elm = $("#manualRouteBtn");
     if (!manualRouteClicked) {
         elm.addClass("active");
@@ -768,16 +775,13 @@ function openHelp(){
         donNotFitToBound = false;
     }
 }
-// Query
-// 
-
 
 $(document).ready(function() {
     if (detectIE()) {
         notie.alert({ type: 'error', text: 'Our site use advanced web feature and works best on Desktop Chrome or Firefox.'});
     }
 
-    notie.alert({text: 'Now you can drag the city name to change its position.', position: 'bottom'});
+    // notie.alert({text: 'Now Drag the names.', position: 'bottom'});
 
     document.getElementById('upload').addEventListener('change', handleGPXFileSelect, false);
 
