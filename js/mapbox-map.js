@@ -703,3 +703,553 @@ async function createPrintMap(zoom, center, bearing, pitch, noRedirect) {
         $.LoadingOverlay("hide");
     }
 }
+
+function printClick_resize() {
+    var b = map.getBounds();
+
+
+    var container = document.getElementById("map-container");
+
+    container.style.width = '3508px';
+    container.style.height = "4962px";
+    map.resize();
+    map.fitBounds(b);
+    //setTimeout(download, 5000);
+    setTimeout(() => {
+        console.log(map.getCanvas().toDataURL())
+    }, 5000);
+}
+function downloadImage(blob) {
+    var link = document.createElement('a');
+    link.download = 'filename.png';
+    link.href = URL.createObjectURL(blob);
+    $.LoadingOverlay("hide");
+    link.click();
+}
+
+function printClick(download) {
+
+    var center = map.getCenter();
+    var bearing = map.getBearing();
+    var pitch = map.getPitch();
+
+
+    var zoom = map.getZoom(); // * (width/original_w);
+
+    console.log(center + ' ' + bearing + ' ' + pitch + ' ' + zoom + ' ' + map.getStyle());
+
+    createPrintMap(zoom, center,
+        bearing, pitch);
+
+
+}
+
+function openHelp(){
+    window.open('https://www.myholidaymap.com/import-your-travel-route-gpx-automatically/', '_blank');
+  }
+  function openManualRouteHelp(){
+    notie.alert({text: 'Click on the Map make the route.', position: 'bottom'});
+  
+  }
+
+  function manualRouteClick(){
+    var elm = $("#manualRouteBtn");
+    if (!manualRouteClicked) {
+        elm.addClass("active");
+        manualRouteClicked = true;
+        isFlightPath = true;
+        donNotFitToBound = true;
+        notie.alert({text: 'Click on the Map make the route.', position: 'bottom'});
+
+    } else {
+        elm.removeClass("active");
+        manualRouteClicked = false;
+        isFlightPath = false;
+        donNotFitToBound = false;
+    }
+}
+// Query
+// 
+
+
+$(document).ready(function() {
+    if (detectIE()) {
+        notie.alert({ type: 'error', text: 'Our site use advanced web feature and works best on Desktop Chrome or Firefox.'});
+    }
+
+    notie.alert({text: 'Now you can drag the city name to change its position.', position: 'bottom'});
+
+    document.getElementById('upload').addEventListener('change', handleGPXFileSelect, false);
+
+    const beforeUnloadListener = (event) => {
+        if(isOkToLeaveSite === false && (filtered_cities().length || app.gpx.data)) {
+            event.preventDefault();
+            return event.returnValue = "Are you sure you want to exit?";
+        }
+      };
+
+    addEventListener("beforeunload", beforeUnloadListener, {capture: true});
+
+    $("#travel_car").addClass('active');
+    setDimensions();
+    /** MapBox Map initialization and EventListener */
+    try {
+        // Geolocation
+        if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                lng = position.coords.longitude;
+                lat = position.coords.latitude;
+            });
+        }
+        map = new mapboxgl.Map({
+            container: 'map-container',
+            style: app.style.url,
+            zoom: zoomLvl,
+            pitch: 0,
+            center: [lng, lat],
+            preserveDrawingBuffer: true,
+            zoomControl: false
+        });
+        var geocoder = new MapboxGeocoder({
+            language: 'en',
+            flyTo: false,
+            accessToken: mapboxgl.accessToken
+        });
+
+        document.getElementById('geocoder').appendChild(geocoder.onAdd(map));
+        map.doubleClickZoom.disable()
+
+        var option = { showCompass: false, showZoom: false }
+        map.addControl(new mapboxgl.NavigationControl(option));
+        //map.zoomControl.disable();
+
+        // Add geolocate control to the map.
+        //map.addControl(new mapboxgl.GeolocateControl({
+        //  positionOptions: {
+        //    enableHighAccuracy: true
+        // },
+        // trackUserLocation: true
+        //}));
+        map.on('load', function() {
+            // Listen for the `result` event from the MapboxGeocoder that is triggered when a user
+            // makes a selection and add a symbol that matches the result.
+            geocoder.on('result', onGeoCoder);
+            updateOverlay()
+        });
+        //map.scrollZoom.disable();
+
+        map.on('style.load', function() {
+            //map.getCanvas().width = '7017px';
+            //map.getCanvas().height = '9933px';
+
+            if (filtered_cities().length || app.gpx.data) {
+                completeRedraw(map);
+            }
+        });
+
+        // When the cursor enters a feature in the point layer, prepare for dragging.
+
+        var canvas = map.getCanvasContainer();
+
+        function onMove(e) {
+            var coords = e.lngLat;
+
+            // Set a UI indicator for dragging.
+            canvas.style.cursor = 'grabbing';
+            const geojson = {
+                'type': 'FeatureCollection',
+                'features': [
+                {
+                'type': 'Feature',
+                'geometry': {
+                'type': 'Point',
+                'coordinates': [0, 0]
+                }
+                }
+                ]
+                };
+            geojson.features[0].geometry.coordinates = [coords.lng, coords.lat];
+            map.getSource(selectedFeatures[0].layer.source).setData(geojson);
+        }
+
+        function onUp(e) {
+            canvas.style.cursor = '';
+
+            // Unbind mouse/touch events
+            map.off('mousemove', onMove);
+            map.off('touchmove', onMove);
+        }
+        map.on('mousedown', function(e) {
+            if(!manualRouteClicked){
+                findTouchedLabel(e)
+            } else {
+                addManualRoute(e);
+            }
+        });
+
+        var selectedFeatures;
+
+        function findTouchedLabel(e) {
+            // Update the Point feature in `geojson` coordinates
+            // and call setData to the source layer `point` on it.
+            selectedFeatures = map.queryRenderedFeatures(e.point);
+
+            if (!selectedFeatures.length || !selectedFeatures[0].layer.layout ||
+                selectedFeatures[0].layer.type !== 'symbol') {
+                return;
+            }
+
+            // Prevent the default map drag behavior.
+            e.preventDefault();
+
+            map.on('mousemove', onMove);
+            map.once('mouseup', onUp);
+        }
+        /*map.on('click', function (e) {
+            var features = map.queryRenderedFeatures(e.point);
+
+            if (!features.length || !features[0].layer.layout) {
+                return;
+            }
+            // Populate the popup and set its coordinates
+            // based on the feature found.
+            var layer_id = features[0].layer.id;
+            const { pos } = app
+            var x = 0;
+            var y = 1;
+            var offset = 0.5;
+            for (var j = cities.length - 1; j >= 0; --j) {
+                if (layer_id.indexOf(cities[j].city_name) !== -1) {
+                    for (var i = 0; i < pos.length; i++) {
+                        if (pos[i].position === cities[j].city_anchor) {
+                            switch (pos[i].position) {
+                                case 'right':
+                                    cities[j].city_offset[x] = cities[j].city_offset[x] - offset;
+                                    break;
+                                case 'bottom':
+                                    cities[j].city_offset[y] = cities[j].city_offset[y] + offset;
+                                    break;
+                                case 'left':
+                                    cities[j].city_offset[x] = cities[j].city_offset[x] + offset;
+                                    break;
+                                case 'top':
+                                    cities[j].city_offset[y] = cities[j].city_offset[y] - offset;
+                                    break;
+                            }
+                            map.setLayoutProperty(layer_id, 'text-offset', cities[j].city_offset);
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+
+        });*/
+    } catch (e) {
+        var mapContainer = document.getElementById('map-container');
+        mapContainer.parentNode.removeChild(mapContainer);
+        notie.alert({ type: 'error', text: 
+        'This application uses the WebGL feature. Normally, refreshing the browser should fix this problem. If the problem persists, send us a message at https://www.myholidaymap.com. '});
+        console.log('This site requires WebGL, but your browser doesn\'t seem' +
+            ' to support it: ' + e.message);
+        return;
+    }
+    toggleStat($("#icon_date_txt_show"), app.overlay.time.visible);
+    toggleStat($("#icon_dist_txt_show"), app.overlay.meters.visible);
+    toggleStat($("#icon_tri_txt_show"), app.overlay.kms.visible);
+    /** Document Resize */
+    $(window).resize(function() {
+        setDimensions(map);
+        if (map) {
+            map.resize();
+            updateOverlay();
+        }
+    });
+    /** UI EventListener */
+    /*
+        document.querySelector("#colorWell").addEventListener("change", (event) => {
+            penColor = event.target.value;
+        console.log(penColor);
+    }, false);
+        document.querySelector("#penWidth").addEventListener("change", (event) => {
+            penWidth = parseInt(event.target.value, 10);
+    }, false);
+    */
+    function toggleStat(elm, visibility) {
+        if (!visibility) {
+            elm.addClass("disable-stats");
+            elm.removeClass("enable-stats");
+        } else {
+            elm.removeClass("disable-stats");
+            elm.addClass("enable-stats");
+        }
+
+    }
+    $("#icon_date_txt_show").on('click', () => {
+        app.overlay.time.visible ^= 1;
+        toggleStat($("#icon_date_txt_show"), app.overlay.time.visible);
+        updateOverlay()
+    });
+    $("#icon_dist_txt_show").on('click', () => {
+        app.overlay.meters.visible ^= 1;
+        toggleStat($("#icon_dist_txt_show"), app.overlay.meters.visible);
+        updateOverlay()
+    });
+    $("#icon_tri_txt_show").on('click', () => {
+        app.overlay.kms.visible ^= 1;
+        toggleStat($("#icon_tri_txt_show"), app.overlay.kms.visible);
+        updateOverlay()
+    });
+    $("#icon_date_txt").on("input", () => {
+        app.overlay.time.text = $("#icon_date_txt").val().trim();
+        updateOverlay();
+    });
+    $("#icon_dist_txt").on("input", () => {
+        app.overlay.meters.text = $("#icon_dist_txt").val().trim();
+        updateOverlay();
+    });
+    $("#icon_tri_txt").on("input", () => {
+        app.overlay.kms.text = $("#icon_tri_txt").val().trim();
+        updateOverlay();
+    });
+
+    $("#btnToggleIcons").on('click', (value) => {
+        app.overlay.showTopRight ^= 1;
+        updateOverlay()
+    });
+
+    $("#tripName_txt").on('input', () => {
+        app.overlay.title.text = $("#tripName_txt").val().trim();
+        updateOverlay()
+    });
+    $("#tripDetail_txt").on('input', () => {
+        app.overlay.subtitle.text = $("#tripDetail_txt").val().trim()
+        updateOverlay()
+    });
+
+    $("ul.styler li").on("click", function() {
+        mapboxgl.accessToken = 'pk.eyJ1IjoidGhpanNzb25kYWciLCJhIjoiY2phOHI2MXNuMDh3dzMzanVhZXlzanU4byJ9.L3vNl1ehNadAt1JWPJqgiA';
+
+        $("ul.styler li").each((i, e) => {
+            $(e).removeClass("active");
+        });
+        var className = $(this).attr("class");
+        $(this).addClass("active");
+
+        const style = app.styles[className]
+        if (style) {
+            app.style = {...app.style, ...style }
+            updateOverlay()
+            map.setStyle(style.url)
+        } else {
+            console.log(`unknown style: '${className}'`)
+        }
+    });
+    $("ul.sizes li").on("click", function() {
+
+        $("ul.sizes li").each((i, e) => {
+            $(e).removeClass("active");
+        });
+        $(this).addClass("active");
+        selectedSize = $(this).find("span.big.size").text().trim();
+        console.log("Selected size: " + selectedSize);
+    });
+    $("ul.portraIte-landscape li").on("click", function() {
+
+        $("ul.portraIte-landscape li").each((i, e) => {
+            $(e).removeClass("active");
+        });
+        selectedOrientation = $(this).attr("class");
+        $(this).addClass("active");
+        setDimensions();
+        map.resize();
+        updateOverlay()
+    });
+    $("#btnPrint").click(function() {
+        try {
+            printClick(false);
+        } catch (e) {
+            notie.alert({ type: 'error', text: 'Our site use advanced web feature and works best on Desktop Chrome or Firefox.'});
+        }
+
+    });
+    $("#travel_flight").click(function() {
+        isFlightPath = true;
+        $("#travel_flight").addClass('active');
+        $("#travel_car").removeClass('active');
+
+    });
+    $("#travel_car").click(function() {
+        isFlightPath = false;
+        $("#travel_car").addClass('active');
+        $("#travel_flight").removeClass('active');
+    });
+    $("#btnDownload").click(function() {
+        printClick(true);
+    });
+    $('#looped_map').change(function() {
+        app.style.loopBack = document.getElementById('looped_map').checked
+        completeRedraw(map);
+    });
+
+    function checkStartDate() {
+        var date = document.getElementById('trvlStrtDate').value;
+        var input = document.getElementById("trvlEndDate");
+        input.setAttribute("min", date);
+        if (document.getElementById("trvlStrtDate").value) {
+            document.getElementById("trvlEndDate").disabled = false;
+        } else {
+            document.getElementById("trvlEndDate").value = '';
+            document.getElementById("trvlEndDate").disabled = true;
+        }
+    }
+
+    function newFun() {
+        document.getElementById('lbl4').hidden = false;
+        document.getElementById('trvlStrtDate').hidden = true;
+        document.getElementById('trvlEndDate').hidden = true;
+        var strDt = document.getElementById('trvlStrtDate').value;
+        var strArr = strDt.split('-');
+        var endDt = document.getElementById('trvlEndDate').value;
+        var endArr = endDt.split('-');
+        document.getElementById('tcrStrtDate').innerHTML = strArr[2] + '/' + strArr[1] + '/' + strArr[0];
+        document.getElementById('tcrEndDate').innerHTML = endArr[2] + '/' + endArr[1] + '/' + endArr[0];
+    }
+
+    function emptyIfEnd() {
+        if (document.getElementById("trvlStrtDate")) {
+            document.getElementById("trvlEndDate").disabled = false;
+        } else {
+            document.getElementById("trvlEndDate").disabled = true;
+        }
+    }
+
+    function setTicker(id) {
+        if (id && id.checked) {
+            document.getElementById('state-legend').hidden = false;
+        } else {
+            document.getElementById('state-legend').hidden = true;
+        }
+    }
+    function addManualRoute(e){
+        var result_resp = {};
+        result_resp.result = {};
+        result_resp.result.place_name_en = 'P' + pointCount++;
+        result_resp['result'].text = result_resp.result.place_name_en;
+        result_resp['result'].geometry = {};
+        result_resp['result'].geometry .coordinates= [];
+        result_resp['result'].geometry.coordinates[0] = e.lngLat.lng;
+        result_resp['result'].geometry.coordinates[1] = e.lngLat.lat;
+        
+        autocompleter(result_resp);
+
+    }
+
+    function onGeoCoder(result_resp){
+        if(manualRouteClicked){
+            var elm = $("#manualRouteBtn");
+            elm.removeClass("active");
+            manualRouteClicked = false;
+            isFlightPath = false;
+        }
+        donNotFitToBound = false;
+        autocompleter(result_resp);
+    }
+    /** autocomplete for places and city names */
+    function autocompleter(result_resp) {
+        const filteredCities = filtered_cities()
+
+        if (filteredCities.length >= MAX_DESTINATION_COUNT) {
+            notie.alert({text: 'Only up to 40 locations allowed.', time: 7});
+            $('.geocoder-icon.geocoder-icon-close').click();
+            return;
+        }
+
+        let city_info = result_resp.result.place_name_en
+        if (city_info) {
+            city_info = city_info.replace(/["']/g, '')
+        }
+
+        if (filteredCities.length > 0 && city_info === filteredCities[filteredCities.length - 1].city_info) {
+            return
+        }
+
+        var city_name = result_resp['result'].text.replace(/["']/g, ""); //autocomplete.getPlace().geometry.location.lat();
+        var city_long = result_resp['result'].geometry.coordinates[0]; //autocomplete.getPlace().geometry.location.lng();
+        var city_lat = result_resp['result'].geometry.coordinates[1]; //autocomplete.getPlace().name;
+        var city_offset = [1.3, 0];
+        var city_anchor = "left";
+        var city_source = {};
+        var city_textsize = 16;
+        var city_flight_path = isFlightPath;
+        var city_alias = result_resp['result'].text;
+        var archived = false;
+        var found = false;
+        for (var i = cities.length - 1; i >= 0; --i) {
+            if (cities[i].city_name == city_name) {
+                cities[i].archived = false;
+                cities[i].city_flight_path = city_flight_path;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            cities.push({
+                city_info,
+                city_long,
+                city_lat,
+                city_name,
+                city_offset,
+                city_anchor,
+                city_source,
+                city_textsize,
+                city_flight_path,
+                city_alias,
+                archived
+            });
+        }
+        //document.getElementById('geocoder').value = '';
+        if (!donNotFitToBound && filtered_cities().length === 1) {
+            map.flyTo({
+                center: new mapboxgl.LngLat(city_long, city_lat),
+                zoom: zoomLvl
+            });
+        }
+        completeRedraw(map);
+        $('.geocoder-icon.geocoder-icon-close').click();
+        var elem = document.getElementById('locationName');
+        elem.scrollTop = elem.scrollHeight;
+
+    }
+
+    function setDimensions(map) {
+        var mapHeight;
+        var mapContainer = $(document.getElementById('map-container'));
+        if ($(window).width() >= 576)
+            mapHeight = Math.ceil($(window).height() - $('nav').height() - mapContainer.offset().top + 10);
+        else {
+            mapHeight = Math.ceil($(window).height());
+        }
+        var mapWidth = Math.ceil(mapHeight * 0.706);
+        if (mapWidth > mapContainer.parent().width()) {
+            mapWidth = Math.ceil(mapContainer.parent().width());
+            mapHeight = Math.ceil(mapWidth / 0.706);
+        }
+        mapWidth = app.mapContainer.width;
+        mapHeight = app.mapContainer.height;
+        mapContainer.css({
+            'width': selectedOrientation === 'portrait' ? mapWidth : mapHeight + 'px ',
+            'height': selectedOrientation === 'portrait' ? mapHeight : mapWidth + 'px'
+        });
+        if ($(window).width() < 576) {
+            var viewportHeight = parseInt($('map').css('marginTop')) + parseInt(mapContainer.css('marginBottom')) + mapHeight + 50;
+            $('.right-area').css('height', viewportHeight + 'px');
+        } else
+            $('.right-area').css('height', '');
+
+        var leftAreaHeight = mapHeight + 50;
+        $('.left-area').css('minHeight', leftAreaHeight + 'px');
+    }
+
+    console.log({ version: 'Thursday Nov 19 08:18:18 UTC 2020' })
+});
